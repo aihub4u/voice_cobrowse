@@ -69,11 +69,16 @@
     background: transparent;
     transition: background 0.3s, border-color 0.3s;
   }
+  .row-media { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .thumb {
+    width: 42px; height: 42px; border-radius: 5px; object-fit: cover;
+    background: var(--line); flex-shrink: 0;
+  }
   .row .name { font-size: 14.5px; }
   .row .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
   .row .price {
     font-family: 'Space Grotesk', sans-serif; font-weight: 500;
-    font-variant-numeric: tabular-nums; white-space: nowrap;
+    font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; padding-left: 10px;
   }
   .row.empty { color: var(--ink-soft); font-size: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
 
@@ -99,22 +104,27 @@
     cursor: pointer;
   }
   .cta:active { opacity: 0.9; }
+  .cta:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* Confirmation screen */
-  .confirm-screen { text-align: center; padding-top: 60px; }
-  .confirm-mark {
+  /* Locked / confirmation / expired screens — all share this shape so a
+     dead link (expired) and a placed order (completed) both clearly read
+     as "nothing to do here" rather than a broken interactive page. */
+  .lock-screen { text-align: center; padding-top: 60px; }
+  .lock-mark {
     width: 52px; height: 52px; border-radius: 50%;
-    background: var(--sage-bg); border: 1px solid var(--sage);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px; color: var(--sage); font-size: 24px;
+    margin: 0 auto 20px; font-size: 24px;
   }
-  .confirm-screen h1 {
+  .lock-mark.ok { background: var(--sage-bg); border: 1px solid var(--sage); color: var(--sage); }
+  .lock-mark.gone { background: var(--amber-bg); border: 1px solid var(--amber); color: var(--amber); }
+  .lock-screen h1 {
     font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 22px;
     margin: 0 0 8px;
   }
-  .confirm-screen .order-id {
+  .lock-screen p { color: var(--ink-soft); font-size: 14px; margin: 0; }
+  .lock-screen .order-id {
     font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums;
-    color: var(--ink-soft); font-size: 14px;
+    color: var(--ink-soft); font-size: 14px; margin-top: 4px;
   }
 </style>
 </head>
@@ -149,10 +159,15 @@
     const params = new URLSearchParams(location.search);
     const sessionId = params.get('s');
     const API_BASE = '';
+    const PLACEHOLDER_THUMB = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42"><rect width="42" height="42" fill="#D7D2C4"/></svg>'
+    );
 
     const socket = io(API_BASE, { query: { session_id: sessionId } });
     let cart = {};
     let products = [];
+    let locked = false;
+    let expiryTimer = null;
 
     function formatINR(n) {
       return '₹' + Number(n).toLocaleString('en-IN');
@@ -169,15 +184,23 @@
       setTimeout(() => el.classList.remove('tally'), 250);
     }
 
+    function thumbTag(imageUrl) {
+      const src = imageUrl || PLACEHOLDER_THUMB;
+      return `<img class="thumb" src="${src}" onerror="this.src='${PLACEHOLDER_THUMB}'" alt="">`;
+    }
+
     function renderCart() {
       const el = document.getElementById('cart');
       const entries = Object.entries(cart);
       el.innerHTML = entries.length
         ? entries.map(([sku, item]) => `
             <div class="row" id="cart-${sku}">
-              <div>
-                <div class="name">${item.product_name}</div>
-                <div class="meta">qty ${item.qty}</div>
+              <div class="row-media">
+                ${thumbTag(item.image_url)}
+                <div>
+                  <div class="name">${item.product_name}</div>
+                  <div class="meta">qty ${item.qty}</div>
+                </div>
               </div>
               <div class="price">${formatINR(item.price * item.qty)}</div>
             </div>
@@ -190,16 +213,52 @@
       el.innerHTML = products.length
         ? products.map((p) => `
             <div class="row" id="prod-${p.id}">
-              <div class="name">${p.name}</div>
+              <div class="row-media">
+                ${thumbTag(p.image_url)}
+                <div class="name">${p.name}</div>
+              </div>
               <div class="price">${formatINR(p.price)}</div>
             </div>
           `).join('')
         : '<div class="row empty">No products loaded yet.</div>';
     }
 
+    // Replaces the whole page with a non-interactive locked screen. Used for
+    // both "order already placed" and "link expired" — after this point
+    // there is nothing left to click.
+    function showLockScreen({ kind, message, orderId }) {
+      locked = true;
+      if (expiryTimer) clearTimeout(expiryTimer);
+      const isOk = kind === 'completed';
+      document.getElementById('app').innerHTML = `
+        <div class="lock-screen">
+          <div class="lock-mark ${isOk ? 'ok' : 'gone'}">${isOk ? '&#10003;' : '&#10005;'}</div>
+          <h1>${isOk ? 'Order confirmed' : 'This link is no longer active'}</h1>
+          <p>${message}</p>
+          ${orderId ? `<div class="order-id">${orderId}</div>` : ''}
+        </div>
+      `;
+    }
+
     async function loadState() {
       const res = await fetch(`${API_BASE}/session/${sessionId}/state`);
+
+      if (res.status === 404) {
+        showLockScreen({ kind: 'expired', message: 'This session has expired or does not exist.' });
+        return;
+      }
+
       const state = await res.json();
+
+      if (state.status === 'completed') {
+        showLockScreen({
+          kind: 'completed',
+          message: 'This order has already been placed.',
+          orderId: state.orderId,
+        });
+        return;
+      }
+
       cart = state.cart || {};
       products = state.products || [];
       renderCart();
@@ -207,15 +266,31 @@
       bumpTotal();
       document.getElementById('status').classList.add('live');
       document.getElementById('status-text').textContent = 'live';
+
+      // Auto-lock the UI the moment the session's own TTL runs out, rather
+      // than waiting for the next click to fail against the backend.
+      if (expiryTimer) clearTimeout(expiryTimer);
+      if (state.expiresAt) {
+        const msLeft = state.expiresAt - Date.now();
+        if (msLeft <= 0) {
+          showLockScreen({ kind: 'expired', message: 'This session has expired.' });
+        } else {
+          expiryTimer = setTimeout(() => {
+            showLockScreen({ kind: 'expired', message: 'This session has expired.' });
+          }, msLeft);
+        }
+      }
     }
 
     socket.on('connect', loadState);
     socket.on('disconnect', () => {
+      if (locked) return;
       document.getElementById('status').classList.remove('live');
       document.getElementById('status-text').textContent = 'reconnecting';
     });
 
     socket.on('cart:update', (data) => {
+      if (locked) return;
       cart = data.cart;
       renderCart();
       bumpTotal();
@@ -227,11 +302,13 @@
     });
 
     socket.on('products:update', (data) => {
+      if (locked) return;
       products = [...products, ...data.products];
       renderProducts();
     });
 
     socket.on('spotlight', (data) => {
+      if (locked) return;
       const el = document.getElementById(`prod-${data.product_id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -241,27 +318,33 @@
     });
 
     socket.on('offer:show', (data) => {
+      if (locked) return;
       const banner = document.getElementById('offer-banner');
       document.getElementById('offer-text').textContent = `${data.offer.title} — ${data.offer.discount}`;
       banner.style.display = 'block';
     });
 
     socket.on('checkout:complete', (data) => {
-      document.getElementById('app').innerHTML = `
-        <div class="confirm-screen">
-          <div class="confirm-mark">&#10003;</div>
-          <h1>Order confirmed</h1>
-          <div class="order-id">${data.order_id}</div>
-        </div>
-      `;
+      showLockScreen({
+        kind: 'completed',
+        message: 'This order has already been placed.',
+        orderId: data.order_id,
+      });
     });
 
-    document.getElementById('checkout-btn').addEventListener('click', async () => {
-      await fetch(`${API_BASE}/webhook/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId })
-      });
+    document.getElementById('checkout-btn').addEventListener('click', async (e) => {
+      if (locked) return;
+      e.target.disabled = true; // prevent double-submit while the request is in flight
+      try {
+        await fetch(`${API_BASE}/webhook/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+      } finally {
+        // If it failed and we're not locked, let them try again.
+        if (!locked) e.target.disabled = false;
+      }
     });
   </script>
 </body>

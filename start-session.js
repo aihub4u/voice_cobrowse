@@ -18,7 +18,7 @@ async function getRecommendedProducts(retailerId) {
   // recommendation logic you actually have (frequently-bought, trending
   // in their category, restock-due items, etc.) — this is just the shape.
   const { rows } = await pg.query(
-    `select sku, product_name, price
+    `select sku, product_name, price, image_url
      from order_items oi
      join orders o on o.order_id = oi.order_id
      where o.retailer_id = $1
@@ -27,7 +27,7 @@ async function getRecommendedProducts(retailerId) {
     [retailerId]
   );
 
-  return rows.map((r) => ({ id: r.sku, name: r.product_name, price: r.price }));
+  return rows.map((r) => ({ id: r.sku, name: r.product_name, price: r.price, image_url: r.image_url }));
 }
 
 // --- 2. Create the session on your backend — session_id is generated server-side ---

@@ -5,6 +5,22 @@ The bot calls webhooks on this backend; the backend pushes Socket.io events
 into a per-session room so the retailer's webpage reacts live — cart updates,
 spotlighted products, offers, and checkout — without polling.
 
+## Session lifecycle
+
+- A session is valid for **30 minutes from creation** (`SESSION_TTL_MS` in
+  `server.js`), a fixed wall-clock deadline — activity does not extend it.
+  The open page locks itself automatically at that mark, without waiting
+  for a request to fail.
+- Once **checkout completes**, the session is marked `completed`
+  immediately (independent of the 30-minute clock) and every further
+  webhook call against it is rejected with 409. The page itself swaps to
+  a non-interactive confirmation screen and stops reacting to any further
+  socket events.
+- A `completed` session still resolves for a short grace period
+  (`COMPLETED_RETENTION_MS`, 10 min) so the page that just checked out —
+  or a reconnect shortly after — sees "order already placed" rather than
+  a bare 404. After that it's gone like any other expired session.
+
 ## Setup
 
 ```bash
@@ -40,10 +56,11 @@ curl -X POST http://localhost:3000/session \
 # use the session_id from that response in everything below
 SESSION_ID=paste-it-here
 
-# simulate the bot adding an item
+# simulate the bot adding an item (image_url is optional — a placeholder
+# thumbnail renders if omitted)
 curl -X POST http://localhost:3000/webhook/add-to-cart \
   -H 'Content-Type: application/json' \
-  -d "{\"session_id\":\"$SESSION_ID\",\"sku\":\"SKU1\",\"product_name\":\"Rice 25kg\",\"price\":1200,\"qty\":2}"
+  -d "{\"session_id\":\"$SESSION_ID\",\"sku\":\"SKU1\",\"product_name\":\"Rice 25kg\",\"price\":1200,\"qty\":2,\"image_url\":\"https://example.com/rice.jpg\"}"
 
 # simulate the bot spotlighting it
 curl -X POST http://localhost:3000/webhook/spotlight \
@@ -55,7 +72,8 @@ curl -X POST http://localhost:3000/webhook/show-offer \
   -H 'Content-Type: application/json' \
   -d "{\"session_id\":\"$SESSION_ID\",\"offer\":{\"id\":\"O1\",\"title\":\"10% off bulk rice\",\"discount\":\"10%\"}}"
 
-# complete checkout
+# complete checkout — this locks the session immediately; re-running any
+# of the above against the same SESSION_ID now returns 409
 curl -X POST http://localhost:3000/webhook/checkout \
   -H 'Content-Type: application/json' \
   -d "{\"session_id\":\"$SESSION_ID\"}"
@@ -94,8 +112,11 @@ actual Karix messaging call and SimplAI outbound-call endpoint.
 
 ## Known gaps to close before production
 
-- `/webhook/checkout`'s Postgres insert has no try/catch — add one.
 - `ALLOWED_ORIGIN` defaults to `*` if unset — always set it in production.
-- Redis session TTL is 6h — adjust if calls can run longer.
 - Order placement in `/webhook/checkout` is a stub — wire in the real
   downstream order API.
+- `seed_products` in `/session` and `products` in `/webhook/show-products`
+  both accept an optional `image_url` per product — wire your actual
+  product image URLs through `start-session.js`'s recommendation query and
+  through whatever SimplAI passes for `show-products`, or thumbnails will
+  fall back to a plain placeholder square.
