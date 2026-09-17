@@ -24,10 +24,15 @@ const io = new Server(server, {
 const redisUrl = process.env.REDIS_URL;
 const pubClient = new Redis(redisUrl);
 const subClient = pubClient.duplicate();
+
+pubClient.on('error', (err) => console.error('redis pubClient error:', err.message));
+subClient.on('error', (err) => console.error('redis subClient error:', err.message));
+
 io.adapter(createAdapter(pubClient, subClient));
 
 // Postgres: source of truth for cart + order history
 const pg = new Pool({ connectionString: process.env.DATABASE_URL });
+pg.on('error', (err) => console.error('pg pool error:', err.message));
 
 // Session state lives in Redis for fast reads; Postgres write is fire-and-forget
 // so the socket emit never waits on a DB round trip.
