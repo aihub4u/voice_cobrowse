@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Your order</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,88 +20,102 @@
     --accent: #FF6B35;
     --accent-bg: #FFF1EA;
     --shadow: 0 1px 2px rgba(20,21,26,0.04), 0 4px 14px rgba(20,21,26,0.06);
+    --bar-h: 68px;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 110px; }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
 
-  /* --- Header --- */
+  /* Whole page is exactly one screen tall — only the middle content area
+     scrolls, so the header and cart bar never move and the page never
+     grows into a long scroll. */
+  .shell {
+    max-width: 480px; margin: 0 auto; position: relative;
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column;
+  }
+
   .topbar {
-    position: sticky; top: 0; z-index: 5;
+    flex: 0 0 auto;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 2px 14px; margin: -16px -14px 16px; background: var(--bg);
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
   }
-  .topbar .mark {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 17px;
-  }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); }
-  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); transition: background 0.3s; }
+  .topbar .mark { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); transition: background 0.3s; }
   .status.live .dot { background: var(--primary); }
+
+  .scroll-area {
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 0 14px calc(var(--bar-h) + 16px);
+  }
 
   /* --- Offer chip --- */
   .offer-chip {
-    display: none;
-    align-items: center; gap: 8px;
+    display: none; align-items: center; gap: 7px;
     background: var(--accent-bg); border: 1px solid #FFD9C2;
-    border-radius: 12px; padding: 10px 14px; margin-bottom: 16px;
-    font-size: 13.5px; font-weight: 500; color: #B94E17;
-    animation: slideDown 0.35s ease;
+    border-radius: 11px; padding: 8px 12px; margin-bottom: 10px;
+    font-size: 12.5px; font-weight: 500; color: #B94E17;
+    animation: slideDown 0.3s ease;
   }
-  .offer-chip .tag { font-size: 15px; }
   @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* --- Your order summary --- */
-  .card { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 18px; }
-  h2.section {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14.5px;
-    margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center;
+  /* --- Collapsible cart summary --- */
+  .cart-summary {
+    background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+    margin-bottom: 12px; overflow: hidden;
   }
-  h2.section .count { color: var(--ink-soft); font-weight: 500; font-size: 13px; }
+  .cart-summary-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .cart-summary-head .label { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px; }
+  .cart-summary-head .meta { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+  .cart-summary-head .chev { transition: transform 0.25s ease; font-size: 11px; }
+  .cart-summary.open .chev { transform: rotate(180deg); }
 
+  .cart-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .cart-summary.open .cart-detail { max-height: 240px; overflow-y: auto; }
   .cart-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 0; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 12px; border-top: 1px solid var(--line);
     transition: background 0.3s;
   }
-  .cart-row:last-child { border-bottom: none; }
-  .cart-row.pulse { background: var(--primary-bg); border-radius: 8px; }
-  .cart-row .thumb { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; background: var(--line); flex-shrink: 0; }
-  .cart-row .name { font-size: 13.5px; font-weight: 500; }
-  .cart-row .meta { font-size: 12px; color: var(--ink-soft); }
+  .cart-row.pulse { background: var(--primary-bg); }
+  .cart-row .thumb { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; background: var(--line); flex-shrink: 0; }
+  .cart-row .name { font-size: 13px; font-weight: 500; }
+  .cart-row .meta { font-size: 11.5px; color: var(--ink-soft); }
   .cart-row .price {
     margin-left: auto; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
-    font-variant-numeric: tabular-nums; white-space: nowrap;
+    font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap;
   }
-  .empty-note { color: var(--ink-soft); font-size: 13.5px; padding: 4px 0; }
+  .empty-note { color: var(--ink-soft); font-size: 13px; padding: 2px 0 8px; }
 
   /* --- Product grid --- */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  h2.section {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13.5px;
+    margin: 4px 0 8px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pcard {
-    background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
-    padding: 10px; position: relative; overflow: hidden;
-    border: 1.5px solid transparent;
+    background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 8px; border: 1.5px solid transparent;
     transition: border-color 0.3s, transform 0.3s;
   }
   .pcard.spot { border-color: var(--accent); transform: scale(1.02); }
   .pcard .thumb {
-    width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover;
-    background: var(--line); margin-bottom: 8px; display: block;
+    width: 100%; aspect-ratio: 1.3; border-radius: 8px; object-fit: cover;
+    background: var(--line); margin-bottom: 6px; display: block;
   }
-  .pcard .name { font-size: 13px; font-weight: 500; line-height: 1.3; min-height: 34px; }
+  .pcard .name { font-size: 12px; font-weight: 500; line-height: 1.25; min-height: 30px; }
   .pcard .price {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14.5px;
-    margin: 6px 0 8px; font-variant-numeric: tabular-nums;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 13px;
+    margin: 4px 0 6px; font-variant-numeric: tabular-nums;
   }
   .add-btn {
-    width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--primary);
+    width: 100%; padding: 6px; border-radius: 7px; border: 1.5px solid var(--primary);
     background: var(--primary-bg); color: var(--primary-dark);
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 12px;
     cursor: pointer;
   }
   .add-btn:active { background: var(--primary); color: #fff; }
@@ -109,69 +123,70 @@
 
   /* --- Floating cart bar --- */
   .cart-bar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    display: none;
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
+    display: none; height: var(--bar-h);
     background: var(--ink); color: #fff;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   }
-  .cart-bar.show { display: flex; }
-  .cart-bar-inner {
-    max-width: 480px; margin: 0 auto; width: 100%;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .cart-bar .summary { font-size: 13px; }
+  .cart-bar.show { display: flex; align-items: center; }
+  .cart-bar-inner { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+  .cart-bar .summary { font-size: 12px; }
   .cart-bar .summary .amt {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 15px;
     font-variant-numeric: tabular-nums; display: block;
   }
   .cart-bar .confirm-btn {
-    background: var(--primary); color: #fff; border: none; border-radius: 10px;
-    padding: 12px 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14px;
+    background: var(--primary); color: #fff; border: none; border-radius: 9px;
+    padding: 10px 18px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13.5px;
     cursor: pointer;
   }
   .cart-bar .confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* --- Locked / confirmation / expired --- */
-  .lock-screen { text-align: center; padding-top: 70px; }
+  .lock-screen { text-align: center; padding-top: 15vh; }
   .lock-mark {
-    width: 60px; height: 60px; border-radius: 50%;
+    width: 56px; height: 56px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 18px; font-size: 26px;
+    margin: 0 auto 16px; font-size: 24px;
   }
   .lock-mark.ok { background: var(--primary-bg); color: var(--primary); }
   .lock-mark.gone { background: var(--accent-bg); color: var(--accent); }
-  .lock-screen h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 21px; margin: 0 0 8px; }
-  .lock-screen p { color: var(--ink-soft); font-size: 14px; margin: 0; }
+  .lock-screen h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; margin: 0 0 8px; }
+  .lock-screen p { color: var(--ink-soft); font-size: 13.5px; margin: 0; }
   .lock-screen .order-id {
     display: inline-block; margin-top: 14px; background: var(--card); border-radius: 8px;
     padding: 8px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
-    font-size: 13px; box-shadow: var(--shadow); font-variant-numeric: tabular-nums;
+    font-size: 12.5px; box-shadow: var(--shadow); font-variant-numeric: tabular-nums;
   }
 </style>
 </head>
 <body>
-  <div class="wrap" id="app">
+  <div class="shell" id="app">
     <div class="topbar">
       <span class="mark">Order</span>
       <span class="status" id="status"><span class="dot"></span><span id="status-text">connecting</span></span>
     </div>
 
-    <div class="offer-chip" id="offer-chip"><span class="tag">&#127991;</span><span id="offer-text"></span></div>
+    <div class="scroll-area">
+      <div class="offer-chip" id="offer-chip"><span>&#127991;</span><span id="offer-text"></span></div>
 
-    <div class="card">
-      <h2 class="section"><span>Your order</span><span class="count" id="cart-count"></span></h2>
-      <div id="cart"></div>
+      <div class="cart-summary" id="cart-summary">
+        <div class="cart-summary-head" id="cart-summary-head">
+          <span class="label">Your order</span>
+          <span class="meta"><span id="cart-summary-text">No items yet</span><span class="chev">&#9662;</span></span>
+        </div>
+        <div class="cart-detail" id="cart-detail"></div>
+      </div>
+
+      <h2 class="section">Available products</h2>
+      <div class="grid" id="products"></div>
     </div>
 
-    <h2 class="section">Available products</h2>
-    <div class="grid" id="products"></div>
-  </div>
-
-  <div class="cart-bar" id="cart-bar">
-    <div class="cart-bar-inner">
-      <div class="summary"><span id="bar-count">0 items</span><span class="amt" id="bar-total">₹0</span></div>
-      <button class="confirm-btn" id="checkout-btn">Confirm order</button>
+    <div class="cart-bar" id="cart-bar">
+      <div class="cart-bar-inner">
+        <div class="summary"><span id="bar-count">0 items</span><span class="amt" id="bar-total">₹0</span></div>
+        <button class="confirm-btn" id="checkout-btn">Confirm order</button>
+      </div>
     </div>
   </div>
 
@@ -201,28 +216,29 @@
 
     function updateCartBar() {
       const count = cartCount();
-      const bar = document.getElementById('cart-bar');
-      bar.classList.toggle('show', count > 0);
+      document.getElementById('cart-bar').classList.toggle('show', count > 0);
       document.getElementById('bar-count').textContent = `${count} item${count === 1 ? '' : 's'}`;
       document.getElementById('bar-total').textContent = formatINR(cartTotal());
     }
 
     function renderCart() {
-      const el = document.getElementById('cart');
       const entries = Object.entries(cart);
-      document.getElementById('cart-count').textContent = entries.length ? `${cartCount()} item${cartCount() === 1 ? '' : 's'}` : '';
-      el.innerHTML = entries.length
+      const count = cartCount();
+      document.getElementById('cart-summary-text').textContent = entries.length
+        ? `${count} item${count === 1 ? '' : 's'} · ${formatINR(cartTotal())}`
+        : 'No items yet';
+
+      const detail = document.getElementById('cart-detail');
+      detail.innerHTML = entries.length
         ? entries.map(([sku, item]) => `
             <div class="cart-row" id="cart-${sku}">
               ${thumbTag(item.image_url)}
-              <div>
-                <div class="name">${item.product_name}</div>
-                <div class="meta">qty ${item.qty}</div>
-              </div>
+              <div><div class="name">${item.product_name}</div><div class="meta">qty ${item.qty}</div></div>
               <div class="price">${formatINR(item.price * item.qty)}</div>
             </div>
           `).join('')
-        : '<div class="empty-note">Nothing added yet — items appear here as the agent talks you through your order.</div>';
+        : '<div class="empty-note" style="padding-left:12px">Items appear here as the agent talks you through your order.</div>';
+
       updateCartBar();
     }
 
@@ -244,7 +260,6 @@
       locked = true;
       if (expiryTimer) clearTimeout(expiryTimer);
       const isOk = kind === 'completed';
-      document.getElementById('cart-bar').classList.remove('show');
       document.getElementById('app').innerHTML = `
         <div class="lock-screen">
           <div class="lock-mark ${isOk ? 'ok' : 'gone'}">${isOk ? '&#10003;' : '&#10005;'}</div>
@@ -332,8 +347,11 @@
       showLockScreen({ kind: 'completed', message: 'This order has already been placed.', orderId: data.order_id });
     });
 
-    // Tap-to-add on the product grid — reuses the same webhook the voice
-    // agent calls, so cart state stays consistent regardless of who added it.
+    document.getElementById('cart-summary-head').addEventListener('click', () => {
+      if (cartCount() === 0) return;
+      document.getElementById('cart-summary').classList.toggle('open');
+    });
+
     document.getElementById('products').addEventListener('click', async (e) => {
       if (locked) return;
       const btn = e.target.closest('.add-btn');
