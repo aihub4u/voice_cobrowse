@@ -59,6 +59,20 @@ curl -X POST http://localhost:3000/webhook/checkout \
 
 Watch the open browser tab react to each call in real time.
 
+## Sending the link before the call
+
+`start-session.js` is the piece that runs *before* any call is placed —
+it looks up a retailer's likely products from purchase history, creates
+the session with that seeded catalog, sends the link over WhatsApp, and
+triggers the outbound call with `session_id` attached as call metadata.
+
+```bash
+BACKEND_URL=https://voice-cobrowse.onrender.com node start-session.js R001 +91XXXXXXXXXX
+```
+
+Replace the WhatsApp send and call-trigger stubs inside it with your
+actual Karix messaging call and SimplAI outbound-call endpoint.
+
 ## Deploying (Render)
 
 1. Push this folder to a GitHub repo.

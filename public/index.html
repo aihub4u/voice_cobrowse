@@ -21,6 +21,9 @@
   <div id="offers"></div>
   <button id="checkout-btn">Confirm order</button>
 
+  <h2>Available products</h2>
+  <div id="products"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -29,11 +32,22 @@
 
     const socket = io(API_BASE, { query: { session_id: sessionId } });
     let cart = {};
+    let products = [];
+
+    function renderProducts() {
+      const el = document.getElementById('products');
+      el.innerHTML = products.map((p) => `
+        <div class="product" id="prod-${p.id}">
+          <span>${p.name}</span>
+          <span>₹${p.price}</span>
+        </div>
+      `).join('') || '<p>No products loaded yet.</p>';
+    }
 
     function renderCart() {
       const el = document.getElementById('cart');
       el.innerHTML = Object.entries(cart).map(([sku, item]) => `
-        <div class="product" id="p-${sku}">
+        <div class="product" id="cart-${sku}">
           <span>${item.product_name} × ${item.qty}</span>
           <span>₹${item.price * item.qty}</span>
         </div>
@@ -45,7 +59,9 @@
       const res = await fetch(`${API_BASE}/session/${sessionId}/state`);
       const state = await res.json();
       cart = state.cart || {};
+      products = state.products || [];
       renderCart();
+      renderProducts();
       document.getElementById('status').textContent = 'live';
     }
 
@@ -57,15 +73,20 @@
     socket.on('cart:update', (data) => {
       cart = data.cart;
       renderCart();
-      const el = document.getElementById(`p-${data.changed_sku}`);
+      const el = document.getElementById(`cart-${data.changed_sku}`);
       if (el) {
         el.classList.add('highlight');
         setTimeout(() => el.classList.remove('highlight'), 1200);
       }
     });
 
+    socket.on('products:update', (data) => {
+      products = [...products, ...data.products];
+      renderProducts();
+    });
+
     socket.on('spotlight', (data) => {
-      const el = document.getElementById(`p-${data.product_id}`);
+      const el = document.getElementById(`prod-${data.product_id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         el.classList.add('highlight');

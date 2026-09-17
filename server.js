@@ -35,7 +35,7 @@ const sessionKey = (id) => `session:${id}:state`;
 
 async function getState(sessionId) {
   const raw = await pubClient.get(sessionKey(sessionId));
-  return raw ? JSON.parse(raw) : { cart: {}, offersShown: [], retailerId: null };
+  return raw ? JSON.parse(raw) : { cart: {}, offersShown: [], retailerId: null, products: [] };
 }
 
 async function setState(sessionId, state) {
@@ -79,6 +79,23 @@ app.post('/webhook/add-to-cart', async (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/webhook/show-products', async (req, res) => {
+  // Adds new products to the catalog shown on the page — distinct from
+  // spotlight, which just highlights something already there. Use this
+  // when the bot says "let me also show you..." for items not in the
+  // original seeded list.
+  const { session_id, products } = req.body; // products: [{id, name, price, image_url}]
+  const state = await getState(session_id);
+
+  const existingIds = new Set(state.products.map((p) => p.id));
+  const newOnes = products.filter((p) => !existingIds.has(p.id));
+  state.products = [...state.products, ...newOnes];
+  await setState(session_id, state);
+
+  io.to(session_id).emit('products:update', { products: newOnes });
+  res.json({ ok: true });
+});
+
 app.post('/webhook/spotlight', async (req, res) => {
   // Pure UI directive — no state change. Fired whenever the bot says
   // "let me show you..." so the page visibly reacts to speech.
@@ -113,10 +130,19 @@ app.post('/webhook/checkout', async (req, res) => {
   res.json({ ok: true, order_id: orderId });
 });
 
-// --- Session creation, called when the call starts / retailer is identified ---
+// --- Session creation, called BEFORE the call is placed / link is sent ---
+// Whatever triggers the call (your dialer, CRM, campaign job) should call
+// this first: build seed_products from that retailer's purchase history or
+// recommendation logic, then pass them here so the page has content the
+// instant it's opened — not just an empty cart waiting for the bot to act.
 app.post('/session', async (req, res) => {
-  const { session_id, retailer_id, seed_cart } = req.body;
-  const state = { retailerId: retailer_id, cart: seed_cart || {}, offersShown: [] };
+  const { session_id, retailer_id, seed_cart, seed_products } = req.body;
+  const state = {
+    retailerId: retailer_id,
+    cart: seed_cart || {},
+    offersShown: [],
+    products: seed_products || [], // [{id, name, price, image_url}]
+  };
   await setState(session_id, state);
   res.json({ ok: true, url: `https://order.karixforge.in/s/${session_id}` });
 });
