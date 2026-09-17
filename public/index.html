@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your order</title>
+<style>
+  body { font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; }
+  .product { display: flex; justify-content: space-between; padding: 12px; border: 1px solid #ddd;
+             border-radius: 8px; margin-bottom: 8px; transition: background 0.3s, transform 0.3s; }
+  .product.highlight { background: #fff3cd; transform: scale(1.02); }
+  .offer { background: #e8f5e9; border: 1px solid #4caf50; padding: 10px; border-radius: 8px; margin: 10px 0; }
+  #status { font-size: 13px; color: #888; }
+  #checkout-btn { width: 100%; padding: 12px; margin-top: 16px; background: #222; color: #fff;
+                  border: none; border-radius: 8px; font-size: 16px; }
+</style>
+</head>
+<body>
+  <h2>Your cart</h2>
+  <div id="status">connecting…</div>
+  <div id="cart"></div>
+  <div id="offers"></div>
+  <button id="checkout-btn">Confirm order</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('s'); // e.g. order.karixforge.in/?s=SESSION_ID
+    const API_BASE = ''; // same origin — server.js serves this file directly
+
+    const socket = io(API_BASE, { query: { session_id: sessionId } });
+    let cart = {};
+
+    function renderCart() {
+      const el = document.getElementById('cart');
+      el.innerHTML = Object.entries(cart).map(([sku, item]) => `
+        <div class="product" id="p-${sku}">
+          <span>${item.product_name} × ${item.qty}</span>
+          <span>₹${item.price * item.qty}</span>
+        </div>
+      `).join('') || '<p>No items yet — the agent will add products as you talk.</p>';
+    }
+
+    // Rehydrate on load/reconnect rather than trusting only live events
+    async function loadState() {
+      const res = await fetch(`${API_BASE}/session/${sessionId}/state`);
+      const state = await res.json();
+      cart = state.cart || {};
+      renderCart();
+      document.getElementById('status').textContent = 'live';
+    }
+
+    socket.on('connect', loadState);
+    socket.on('disconnect', () => {
+      document.getElementById('status').textContent = 'reconnecting…';
+    });
+
+    socket.on('cart:update', (data) => {
+      cart = data.cart;
+      renderCart();
+      const el = document.getElementById(`p-${data.changed_sku}`);
+      if (el) {
+        el.classList.add('highlight');
+        setTimeout(() => el.classList.remove('highlight'), 1200);
+      }
+    });
+
+    socket.on('spotlight', (data) => {
+      const el = document.getElementById(`p-${data.product_id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlight');
+        setTimeout(() => el.classList.remove('highlight'), 1500);
+      }
+    });
+
+    socket.on('offer:show', (data) => {
+      const el = document.getElementById('offers');
+      el.innerHTML = `<div class="offer">${data.offer.title} — ${data.offer.discount}</div>` + el.innerHTML;
+    });
+
+    socket.on('checkout:complete', (data) => {
+      document.body.innerHTML = `<h2>Order confirmed</h2><p>Order ID: ${data.order_id}</p>`;
+    });
+
+    document.getElementById('checkout-btn').addEventListener('click', async () => {
+      await fetch(`${API_BASE}/webhook/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+    });
+  </script>
+</body>
+</html>
