@@ -71,15 +71,26 @@ io.on('connection', (socket) => {
   socket.join(session_id);
 });
 
+// Wraps an async route handler so a thrown/rejected error becomes a JSON
+// 500 response instead of an unhandled rejection that crashes the process.
+function ah(fn) {
+  return (req, res) => {
+    Promise.resolve(fn(req, res)).catch((err) => {
+      console.error(`${req.method} ${req.path} failed:`, err.message);
+      if (!res.headersSent) res.status(500).json({ ok: false, error: err.message });
+    });
+  };
+}
+
 // --- REST endpoint the webpage calls on load/reconnect to rehydrate ---
-app.get('/session/:id/state', async (req, res) => {
+app.get('/session/:id/state', ah(async (req, res) => {
   const state = await getState(req.params.id);
   res.json(state);
-});
+}));
 
 // --- Webhooks SimplAI's function-calling layer hits during the call ---
 
-app.post('/webhook/add-to-cart', async (req, res) => {
+app.post('/webhook/add-to-cart', ah(async (req, res) => {
   const { session_id, sku, product_name, price, qty } = req.body;
   const state = await getState(session_id);
 
@@ -89,9 +100,9 @@ app.post('/webhook/add-to-cart', async (req, res) => {
 
   io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku });
   res.json({ ok: true });
-});
+}));
 
-app.post('/webhook/show-products', async (req, res) => {
+app.post('/webhook/show-products', ah(async (req, res) => {
   // Adds new products to the catalog shown on the page — distinct from
   // spotlight, which just highlights something already there. Use this
   // when the bot says "let me also show you..." for items not in the
@@ -106,17 +117,17 @@ app.post('/webhook/show-products', async (req, res) => {
 
   io.to(session_id).emit('products:update', { products: newOnes });
   res.json({ ok: true });
-});
+}));
 
-app.post('/webhook/spotlight', async (req, res) => {
+app.post('/webhook/spotlight', ah(async (req, res) => {
   // Pure UI directive — no state change. Fired whenever the bot says
   // "let me show you..." so the page visibly reacts to speech.
   const { session_id, product_id } = req.body;
   io.to(session_id).emit('spotlight', { product_id });
   res.json({ ok: true });
-});
+}));
 
-app.post('/webhook/show-offer', async (req, res) => {
+app.post('/webhook/show-offer', ah(async (req, res) => {
   const { session_id, offer } = req.body; // { id, title, discount, sku }
   const state = await getState(session_id);
   state.offersShown.push(offer.id);
@@ -124,9 +135,9 @@ app.post('/webhook/show-offer', async (req, res) => {
 
   io.to(session_id).emit('offer:show', { offer });
   res.json({ ok: true });
-});
+}));
 
-app.post('/webhook/checkout', async (req, res) => {
+app.post('/webhook/checkout', ah(async (req, res) => {
   const { session_id } = req.body;
   const state = await getState(session_id);
 
@@ -140,14 +151,14 @@ app.post('/webhook/checkout', async (req, res) => {
 
   io.to(session_id).emit('checkout:complete', { order_id: orderId });
   res.json({ ok: true, order_id: orderId });
-});
+}));
 
 // --- Session creation, called BEFORE the call is placed / link is sent ---
 // Whatever triggers the call (your dialer, CRM, campaign job) should call
 // this first: build seed_products from that retailer's purchase history or
 // recommendation logic, then pass them here so the page has content the
 // instant it's opened — not just an empty cart waiting for the bot to act.
-app.post('/session', async (req, res) => {
+app.post('/session', ah(async (req, res) => {
   const { session_id, retailer_id, seed_cart, seed_products } = req.body;
   const state = {
     retailerId: retailer_id,
@@ -157,6 +168,6 @@ app.post('/session', async (req, res) => {
   };
   await setState(session_id, state);
   res.json({ ok: true, url: `https://order.karixforge.in/s/${session_id}` });
-});
+}));
 
 server.listen(process.env.PORT || 3000);
