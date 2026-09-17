@@ -146,6 +146,49 @@ app.post('/webhook/add-to-cart', ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
+app.post('/webhook/remove-from-cart', ah(async (req, res) => {
+  const { session_id, sku } = req.body;
+  const state = await requireActiveSession(session_id);
+
+  if (!state.cart[sku]) {
+    const err = new Error(`No item with sku "${sku}" in this cart.`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  delete state.cart[sku];
+  await setState(session_id, state);
+  persistToPostgres(session_id, state);
+
+  io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku, removed: true });
+  res.json({ ok: true });
+}));
+
+app.post('/webhook/update-quantity', ah(async (req, res) => {
+  // Sets the quantity to an exact value — distinct from add-to-cart, which
+  // increments. Setting qty to 0 (or omitting a positive qty) removes the
+  // item, same as calling remove-from-cart.
+  const { session_id, sku, qty } = req.body;
+  const state = await requireActiveSession(session_id);
+
+  if (!state.cart[sku]) {
+    const err = new Error(`No item with sku "${sku}" in this cart.`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (qty <= 0) {
+    delete state.cart[sku];
+  } else {
+    state.cart[sku].qty = qty;
+  }
+  await setState(session_id, state);
+  persistToPostgres(session_id, state);
+
+  io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku });
+  res.json({ ok: true });
+}));
+
 app.post('/webhook/show-products', ah(async (req, res) => {
   // Adds new products to the catalog shown on the page — distinct from
   // spotlight, which just highlights something already there. Use this

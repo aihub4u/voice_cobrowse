@@ -62,6 +62,16 @@ curl -X POST http://localhost:3000/webhook/add-to-cart \
   -H 'Content-Type: application/json' \
   -d "{\"session_id\":\"$SESSION_ID\",\"sku\":\"SKU1\",\"product_name\":\"Rice 25kg\",\"price\":1200,\"qty\":2,\"image_url\":\"https://example.com/rice.jpg\"}"
 
+# remove an item from the cart entirely
+curl -X POST http://localhost:3000/webhook/remove-from-cart \
+  -H 'Content-Type: application/json' \
+  -d "{\"session_id\":\"$SESSION_ID\",\"sku\":\"SKU1\"}"
+
+# set a cart item's quantity to an exact value (not increment — qty 0 removes it)
+curl -X POST http://localhost:3000/webhook/update-quantity \
+  -H 'Content-Type: application/json' \
+  -d "{\"session_id\":\"$SESSION_ID\",\"sku\":\"SKU1\",\"qty\":5}"
+
 # simulate the bot spotlighting it
 curl -X POST http://localhost:3000/webhook/spotlight \
   -H 'Content-Type: application/json' \
