@@ -6,29 +6,33 @@
 <title>Your order</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #F6F7F9;
+    --bg: #EEF3FC;
     --card: #FFFFFF;
-    --ink: #14151A;
+    --ink: #171B2E;
     --ink-soft: #6B7280;
-    --line: #ECEDF0;
-    --primary: #0FA968;
-    --primary-dark: #0B7A4C;
-    --primary-bg: #E6F7EF;
-    --accent: #FF6B35;
-    --accent-bg: #FFF1EA;
-    --shadow: 0 1px 2px rgba(20,21,26,0.04), 0 4px 14px rgba(20,21,26,0.06);
+    --line: #E3E9F7;
+    --primary: #2874F0;
+    --primary-dark: #1955C4;
+    --primary-bg: #E8F0FE;
+    --primary-glow: rgba(40, 116, 240, 0.35);
+    --accent: #FFC200;
+    --accent-ink: #7A4E00;
+    --accent-bg: #FFF7DE;
+    --live: #00B562;
+    --shadow: 0 1px 2px rgba(23,27,46,0.05), 0 8px 20px rgba(40,116,240,0.08);
     --bar-h: 68px;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
-  body { background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(circle at 15% 0%, rgba(40,116,240,0.10), transparent 45%);
+    color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
+  }
 
-  /* Whole page is exactly one screen tall — only the middle content area
-     scrolls, so the header and cart bar never move and the page never
-     grows into a long scroll. */
   .shell {
     max-width: 480px; margin: 0 auto; position: relative;
     height: 100vh; height: 100dvh;
@@ -38,24 +42,43 @@
   .topbar {
     flex: 0 0 auto;
     display: flex; align-items: center; justify-content: space-between;
-    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+    background: linear-gradient(135deg, var(--primary) 0%, #1E5FD9 100%);
+    box-shadow: 0 4px 18px var(--primary-glow);
   }
-  .topbar .mark { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px; }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
-  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); transition: background 0.3s; }
-  .status.live .dot { background: var(--primary); }
+  .topbar .mark {
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; color: #fff;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .topbar .mark .spark { color: var(--accent); }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); }
+  .status .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.5);
+    transition: background 0.3s;
+  }
+  .status.live .dot {
+    background: var(--live);
+    box-shadow: 0 0 0 0 rgba(0,181,98,0.6);
+    animation: pulseDot 1.8s infinite;
+  }
+  @keyframes pulseDot {
+    0% { box-shadow: 0 0 0 0 rgba(0,181,98,0.55); }
+    70% { box-shadow: 0 0 0 6px rgba(0,181,98,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,181,98,0); }
+  }
 
   .scroll-area {
     flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    padding: 0 14px calc(var(--bar-h) + 16px);
+    padding: 14px 14px calc(var(--bar-h) + 16px);
   }
 
   /* --- Offer chip --- */
   .offer-chip {
     display: none; align-items: center; gap: 7px;
-    background: var(--accent-bg); border: 1px solid #FFD9C2;
+    background: linear-gradient(90deg, var(--accent-bg), #FFF);
+    border: 1px solid #FFE28A;
     border-radius: 11px; padding: 8px 12px; margin-bottom: 10px;
-    font-size: 12.5px; font-weight: 500; color: #B94E17;
+    font-size: 12.5px; font-weight: 500; color: var(--accent-ink);
     animation: slideDown 0.3s ease;
   }
   @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -63,13 +86,13 @@
   /* --- Collapsible cart summary --- */
   .cart-summary {
     background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
-    margin-bottom: 12px; overflow: hidden;
+    margin-bottom: 12px; overflow: hidden; border: 1px solid var(--line);
   }
   .cart-summary-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
-  .cart-summary-head .label { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px; }
+  .cart-summary-head .label { font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13px; }
   .cart-summary-head .meta { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
   .cart-summary-head .chev { transition: transform 0.25s ease; font-size: 11px; }
   .cart-summary.open .chev { transform: rotate(180deg); }
@@ -86,69 +109,75 @@
   .cart-row .name { font-size: 13px; font-weight: 500; }
   .cart-row .meta { font-size: 11.5px; color: var(--ink-soft); }
   .cart-row .price {
-    margin-left: auto; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+    margin-left: auto; font-family: 'Sora', sans-serif; font-weight: 600;
     font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap;
   }
   .empty-note { color: var(--ink-soft); font-size: 13px; padding: 2px 0 8px; }
 
   /* --- Product list --- */
   h2.section {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13.5px;
+    font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13.5px;
     margin: 4px 0 8px;
   }
-  .plist { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .plist { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); }
   .prow {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; border-top: 1px solid var(--line);
-    transition: background 0.3s, border-color 0.3s;
+    transition: background 0.3s, box-shadow 0.3s;
   }
   .prow:first-child { border-top: none; }
-  .prow.spot { background: var(--accent-bg); }
+  .prow.spot {
+    background: var(--primary-bg);
+    box-shadow: inset 3px 0 0 var(--primary), 0 0 14px var(--primary-glow);
+  }
   .prow .thumb { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; background: var(--line); flex-shrink: 0; }
   .prow .name { font-size: 13px; font-weight: 500; flex: 1; min-width: 0; }
   .prow .price {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px;
+    font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13px;
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
 
-  /* --- Floating cart summary bar (display-only, no action) --- */
+  /* --- Floating cart summary bar (display-only, glass HUD style) --- */
   .cart-bar {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
     display: none; height: var(--bar-h);
-    background: var(--ink); color: #fff;
+    background: linear-gradient(135deg, rgba(23,27,46,0.92), rgba(25,85,196,0.92));
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #fff;
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   }
   .cart-bar.show { display: flex; align-items: center; }
   .cart-bar-inner { width: 100%; display: flex; align-items: center; justify-content: space-between; }
-  .cart-bar .summary { font-size: 12px; }
+  .cart-bar .summary { font-size: 12px; color: rgba(255,255,255,0.75); }
   .cart-bar .summary .amt {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 15px;
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; color: var(--accent);
     font-variant-numeric: tabular-nums; display: block;
   }
-  .cart-bar .hint { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+  .cart-bar .hint { font-size: 11.5px; color: rgba(255,255,255,0.55); }
 
   /* --- Locked / confirmation / expired --- */
   .lock-screen { text-align: center; padding-top: 15vh; }
   .lock-mark {
-    width: 56px; height: 56px; border-radius: 50%;
+    width: 58px; height: 58px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 16px; font-size: 24px;
   }
-  .lock-mark.ok { background: var(--primary-bg); color: var(--primary); }
-  .lock-mark.gone { background: var(--accent-bg); color: var(--accent); }
-  .lock-screen h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; margin: 0 0 8px; }
+  .lock-mark.ok { background: var(--primary-bg); color: var(--primary); box-shadow: 0 0 24px var(--primary-glow); }
+  .lock-mark.gone { background: var(--accent-bg); color: var(--accent-ink); }
+  .lock-screen h1 { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 20px; margin: 0 0 8px; }
   .lock-screen p { color: var(--ink-soft); font-size: 13.5px; margin: 0; }
   .lock-screen .order-id {
     display: inline-block; margin-top: 14px; background: var(--card); border-radius: 8px;
-    padding: 8px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+    padding: 8px 14px; font-family: 'Sora', sans-serif; font-weight: 600;
     font-size: 12.5px; box-shadow: var(--shadow); font-variant-numeric: tabular-nums;
+    border: 1px solid var(--line);
   }
 </style>
 </head>
 <body>
   <div class="shell" id="app">
     <div class="topbar">
-      <span class="mark">Order</span>
+      <span class="mark"><span class="spark">&#9889;</span>Order</span>
       <span class="status" id="status"><span class="dot"></span><span id="status-text">connecting</span></span>
     </div>
 
@@ -181,7 +210,7 @@
     const sessionId = params.get('s');
     const API_BASE = '';
     const PLACEHOLDER_THUMB = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ECEDF0"/></svg>'
+      '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#E3E9F7"/></svg>'
     );
 
     const socket = io(API_BASE, { query: { session_id: sessionId } });
