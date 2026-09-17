@@ -6,125 +6,147 @@
 <title>Your order</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper: #F3F1EA;
-    --paper-raised: #FBFAF6;
-    --ink: #20242B;
-    --ink-soft: #63605A;
-    --line: #D7D2C4;
-    --primary: #24345C;
-    --primary-ink: #FFFFFF;
-    --amber: #B8791A;
-    --amber-bg: #F7EAD2;
-    --sage: #3F6B4A;
-    --sage-bg: #E4EDE6;
+    --bg: #F6F7F9;
+    --card: #FFFFFF;
+    --ink: #14151A;
+    --ink-soft: #6B7280;
+    --line: #ECEDF0;
+    --primary: #0FA968;
+    --primary-dark: #0B7A4C;
+    --primary-bg: #E6F7EF;
+    --accent: #FF6B35;
+    --accent-bg: #FFF1EA;
+    --shadow: 0 1px 2px rgba(20,21,26,0.04), 0 4px 14px rgba(20,21,26,0.06);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--paper);
+    background: var(--bg);
     color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 18px 48px; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 110px; }
 
+  /* --- Header --- */
   .topbar {
+    position: sticky; top: 0; z-index: 5;
     display: flex; align-items: center; justify-content: space-between;
-    padding-bottom: 14px; margin-bottom: 18px;
-    border-bottom: 1px solid var(--line);
+    padding: 10px 2px 14px; margin: -16px -14px 16px; background: var(--bg);
   }
   .topbar .mark {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px;
-    letter-spacing: 0.01em;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 17px;
   }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); }
-  .status .dot {
-    width: 7px; height: 7px; border-radius: 50%; background: #B8791A;
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); transition: background 0.3s; }
+  .status.live .dot { background: var(--primary); }
+
+  /* --- Offer chip --- */
+  .offer-chip {
+    display: none;
+    align-items: center; gap: 8px;
+    background: var(--accent-bg); border: 1px solid #FFD9C2;
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 16px;
+    font-size: 13.5px; font-weight: 500; color: #B94E17;
+    animation: slideDown 0.35s ease;
+  }
+  .offer-chip .tag { font-size: 15px; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* --- Your order summary --- */
+  .card { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 18px; }
+  h2.section {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14.5px;
+    margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center;
+  }
+  h2.section .count { color: var(--ink-soft); font-weight: 500; font-size: 13px; }
+
+  .cart-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--line);
     transition: background 0.3s;
   }
-  .status.live .dot { background: var(--sage); }
+  .cart-row:last-child { border-bottom: none; }
+  .cart-row.pulse { background: var(--primary-bg); border-radius: 8px; }
+  .cart-row .thumb { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; background: var(--line); flex-shrink: 0; }
+  .cart-row .name { font-size: 13.5px; font-weight: 500; }
+  .cart-row .meta { font-size: 12px; color: var(--ink-soft); }
+  .cart-row .price {
+    margin-left: auto; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .empty-note { color: var(--ink-soft); font-size: 13.5px; padding: 4px 0; }
 
-  .total-block { margin-bottom: 28px; }
-  .total-label { font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; }
-  .total-value {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
-    font-size: 40px; line-height: 1;
-    font-variant-numeric: tabular-nums;
-    transition: transform 0.25s ease;
+  /* --- Product grid --- */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pcard {
+    background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+    padding: 10px; position: relative; overflow: hidden;
+    border: 1.5px solid transparent;
+    transition: border-color 0.3s, transform 0.3s;
   }
-  .total-value.tally { transform: scale(1.05); color: var(--primary); }
-
-  h2.section {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 15px;
-    margin: 0 0 10px;
+  .pcard.spot { border-color: var(--accent); transform: scale(1.02); }
+  .pcard .thumb {
+    width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover;
+    background: var(--line); margin-bottom: 8px; display: block;
   }
-
-  .ledger { border-top: 1px solid var(--line); margin-bottom: 28px; }
-  .row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0; border-bottom: 1px solid var(--line);
-    background: transparent;
-    transition: background 0.3s, border-color 0.3s;
+  .pcard .name { font-size: 13px; font-weight: 500; line-height: 1.3; min-height: 34px; }
+  .pcard .price {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14.5px;
+    margin: 6px 0 8px; font-variant-numeric: tabular-nums;
   }
-  .row-media { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .thumb {
-    width: 42px; height: 42px; border-radius: 5px; object-fit: cover;
-    background: var(--line); flex-shrink: 0;
-  }
-  .row .name { font-size: 14.5px; }
-  .row .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
-  .row .price {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
-    font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; padding-left: 10px;
-  }
-  .row.empty { color: var(--ink-soft); font-size: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
-
-  .row.pulse { background: var(--sage-bg); }
-  .row.spot { background: var(--amber-bg); border-color: var(--amber); }
-
-  .offer-banner {
-    display: none;
-    background: var(--amber-bg); border: 1px solid var(--amber);
-    border-radius: 4px; padding: 12px 14px; margin-bottom: 24px;
-    font-size: 14px;
-  }
-  .offer-banner .label {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 12.5px;
-    color: var(--amber); margin-bottom: 3px;
-  }
-
-  .cta {
-    width: 100%; padding: 15px; margin-top: 8px;
-    background: var(--primary); color: var(--primary-ink);
-    border: none; border-radius: 4px;
-    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; font-size: 15px;
+  .add-btn {
+    width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid var(--primary);
+    background: var(--primary-bg); color: var(--primary-dark);
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px;
     cursor: pointer;
   }
-  .cta:active { opacity: 0.9; }
-  .cta:disabled { opacity: 0.5; cursor: not-allowed; }
+  .add-btn:active { background: var(--primary); color: #fff; }
+  .add-btn.added { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-  /* Locked / confirmation / expired screens — all share this shape so a
-     dead link (expired) and a placed order (completed) both clearly read
-     as "nothing to do here" rather than a broken interactive page. */
-  .lock-screen { text-align: center; padding-top: 60px; }
+  /* --- Floating cart bar --- */
+  .cart-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    display: none;
+    background: var(--ink); color: #fff;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  }
+  .cart-bar.show { display: flex; }
+  .cart-bar-inner {
+    max-width: 480px; margin: 0 auto; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cart-bar .summary { font-size: 13px; }
+  .cart-bar .summary .amt {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px;
+    font-variant-numeric: tabular-nums; display: block;
+  }
+  .cart-bar .confirm-btn {
+    background: var(--primary); color: #fff; border: none; border-radius: 10px;
+    padding: 12px 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 14px;
+    cursor: pointer;
+  }
+  .cart-bar .confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* --- Locked / confirmation / expired --- */
+  .lock-screen { text-align: center; padding-top: 70px; }
   .lock-mark {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 60px; height: 60px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px; font-size: 24px;
+    margin: 0 auto 18px; font-size: 26px;
   }
-  .lock-mark.ok { background: var(--sage-bg); border: 1px solid var(--sage); color: var(--sage); }
-  .lock-mark.gone { background: var(--amber-bg); border: 1px solid var(--amber); color: var(--amber); }
-  .lock-screen h1 {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 22px;
-    margin: 0 0 8px;
-  }
+  .lock-mark.ok { background: var(--primary-bg); color: var(--primary); }
+  .lock-mark.gone { background: var(--accent-bg); color: var(--accent); }
+  .lock-screen h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 21px; margin: 0 0 8px; }
   .lock-screen p { color: var(--ink-soft); font-size: 14px; margin: 0; }
   .lock-screen .order-id {
-    font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums;
-    color: var(--ink-soft); font-size: 14px; margin-top: 4px;
+    display: inline-block; margin-top: 14px; background: var(--card); border-radius: 8px;
+    padding: 8px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+    font-size: 13px; box-shadow: var(--shadow); font-variant-numeric: tabular-nums;
   }
 </style>
 </head>
@@ -135,23 +157,22 @@
       <span class="status" id="status"><span class="dot"></span><span id="status-text">connecting</span></span>
     </div>
 
-    <div class="total-block">
-      <div class="total-label">Running total</div>
-      <div class="total-value" id="total">₹0</div>
-    </div>
+    <div class="offer-chip" id="offer-chip"><span class="tag">&#127991;</span><span id="offer-text"></span></div>
 
-    <div class="offer-banner" id="offer-banner">
-      <div class="label">Offer</div>
-      <div id="offer-text"></div>
+    <div class="card">
+      <h2 class="section"><span>Your order</span><span class="count" id="cart-count"></span></h2>
+      <div id="cart"></div>
     </div>
-
-    <h2 class="section">Your order</h2>
-    <div class="ledger" id="cart"></div>
 
     <h2 class="section">Available products</h2>
-    <div class="ledger" id="products"></div>
+    <div class="grid" id="products"></div>
+  </div>
 
-    <button class="cta" id="checkout-btn">Confirm order</button>
+  <div class="cart-bar" id="cart-bar">
+    <div class="cart-bar-inner">
+      <div class="summary"><span id="bar-count">0 items</span><span class="amt" id="bar-total">₹0</span></div>
+      <button class="confirm-btn" id="checkout-btn">Confirm order</button>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
@@ -160,7 +181,7 @@
     const sessionId = params.get('s');
     const API_BASE = '';
     const PLACEHOLDER_THUMB = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42"><rect width="42" height="42" fill="#D7D2C4"/></svg>'
+      '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ECEDF0"/></svg>'
     );
 
     const socket = io(API_BASE, { query: { session_id: sessionId } });
@@ -169,67 +190,61 @@
     let locked = false;
     let expiryTimer = null;
 
-    function formatINR(n) {
-      return '₹' + Number(n).toLocaleString('en-IN');
-    }
+    function formatINR(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
+    function cartCount() { return Object.values(cart).reduce((s, i) => s + i.qty, 0); }
+    function cartTotal() { return Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0); }
 
-    function cartTotal() {
-      return Object.values(cart).reduce((sum, item) => sum + item.price * item.qty, 0);
-    }
-
-    function bumpTotal() {
-      const el = document.getElementById('total');
-      el.textContent = formatINR(cartTotal());
-      el.classList.add('tally');
-      setTimeout(() => el.classList.remove('tally'), 250);
-    }
-
-    function thumbTag(imageUrl) {
+    function thumbTag(imageUrl, cls) {
       const src = imageUrl || PLACEHOLDER_THUMB;
-      return `<img class="thumb" src="${src}" onerror="this.src='${PLACEHOLDER_THUMB}'" alt="">`;
+      return `<img class="thumb ${cls || ''}" src="${src}" onerror="this.src='${PLACEHOLDER_THUMB}'" alt="">`;
+    }
+
+    function updateCartBar() {
+      const count = cartCount();
+      const bar = document.getElementById('cart-bar');
+      bar.classList.toggle('show', count > 0);
+      document.getElementById('bar-count').textContent = `${count} item${count === 1 ? '' : 's'}`;
+      document.getElementById('bar-total').textContent = formatINR(cartTotal());
     }
 
     function renderCart() {
       const el = document.getElementById('cart');
       const entries = Object.entries(cart);
+      document.getElementById('cart-count').textContent = entries.length ? `${cartCount()} item${cartCount() === 1 ? '' : 's'}` : '';
       el.innerHTML = entries.length
         ? entries.map(([sku, item]) => `
-            <div class="row" id="cart-${sku}">
-              <div class="row-media">
-                ${thumbTag(item.image_url)}
-                <div>
-                  <div class="name">${item.product_name}</div>
-                  <div class="meta">qty ${item.qty}</div>
-                </div>
+            <div class="cart-row" id="cart-${sku}">
+              ${thumbTag(item.image_url)}
+              <div>
+                <div class="name">${item.product_name}</div>
+                <div class="meta">qty ${item.qty}</div>
               </div>
               <div class="price">${formatINR(item.price * item.qty)}</div>
             </div>
           `).join('')
-        : '<div class="row empty">Nothing added yet — items appear here as the agent talks you through your order.</div>';
+        : '<div class="empty-note">Nothing added yet — items appear here as the agent talks you through your order.</div>';
+      updateCartBar();
     }
 
     function renderProducts() {
       const el = document.getElementById('products');
       el.innerHTML = products.length
         ? products.map((p) => `
-            <div class="row" id="prod-${p.id}">
-              <div class="row-media">
-                ${thumbTag(p.image_url)}
-                <div class="name">${p.name}</div>
-              </div>
+            <div class="pcard" id="prod-${p.id}">
+              ${thumbTag(p.image_url)}
+              <div class="name">${p.name}</div>
               <div class="price">${formatINR(p.price)}</div>
+              <button class="add-btn" data-sku="${p.id}" data-name="${p.name}" data-price="${p.price}" data-image="${p.image_url || ''}">Add</button>
             </div>
           `).join('')
-        : '<div class="row empty">No products loaded yet.</div>';
+        : '<div class="empty-note">No products loaded yet.</div>';
     }
 
-    // Replaces the whole page with a non-interactive locked screen. Used for
-    // both "order already placed" and "link expired" — after this point
-    // there is nothing left to click.
     function showLockScreen({ kind, message, orderId }) {
       locked = true;
       if (expiryTimer) clearTimeout(expiryTimer);
       const isOk = kind === 'completed';
+      document.getElementById('cart-bar').classList.remove('show');
       document.getElementById('app').innerHTML = `
         <div class="lock-screen">
           <div class="lock-mark ${isOk ? 'ok' : 'gone'}">${isOk ? '&#10003;' : '&#10005;'}</div>
@@ -251,11 +266,7 @@
       const state = await res.json();
 
       if (state.status === 'completed') {
-        showLockScreen({
-          kind: 'completed',
-          message: 'This order has already been placed.',
-          orderId: state.orderId,
-        });
+        showLockScreen({ kind: 'completed', message: 'This order has already been placed.', orderId: state.orderId });
         return;
       }
 
@@ -263,21 +274,16 @@
       products = state.products || [];
       renderCart();
       renderProducts();
-      bumpTotal();
       document.getElementById('status').classList.add('live');
       document.getElementById('status-text').textContent = 'live';
 
-      // Auto-lock the UI the moment the session's own TTL runs out, rather
-      // than waiting for the next click to fail against the backend.
       if (expiryTimer) clearTimeout(expiryTimer);
       if (state.expiresAt) {
         const msLeft = state.expiresAt - Date.now();
         if (msLeft <= 0) {
           showLockScreen({ kind: 'expired', message: 'This session has expired.' });
         } else {
-          expiryTimer = setTimeout(() => {
-            showLockScreen({ kind: 'expired', message: 'This session has expired.' });
-          }, msLeft);
+          expiryTimer = setTimeout(() => showLockScreen({ kind: 'expired', message: 'This session has expired.' }), msLeft);
         }
       }
     }
@@ -293,7 +299,6 @@
       if (locked) return;
       cart = data.cart;
       renderCart();
-      bumpTotal();
       const el = document.getElementById(`cart-${data.changed_sku}`);
       if (el) {
         el.classList.add('pulse');
@@ -319,30 +324,55 @@
 
     socket.on('offer:show', (data) => {
       if (locked) return;
-      const banner = document.getElementById('offer-banner');
       document.getElementById('offer-text').textContent = `${data.offer.title} — ${data.offer.discount}`;
-      banner.style.display = 'block';
+      document.getElementById('offer-chip').style.display = 'flex';
     });
 
     socket.on('checkout:complete', (data) => {
-      showLockScreen({
-        kind: 'completed',
-        message: 'This order has already been placed.',
-        orderId: data.order_id,
-      });
+      showLockScreen({ kind: 'completed', message: 'This order has already been placed.', orderId: data.order_id });
+    });
+
+    // Tap-to-add on the product grid — reuses the same webhook the voice
+    // agent calls, so cart state stays consistent regardless of who added it.
+    document.getElementById('products').addEventListener('click', async (e) => {
+      if (locked) return;
+      const btn = e.target.closest('.add-btn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.classList.add('added');
+      btn.textContent = 'Added';
+      try {
+        await fetch(`${API_BASE}/webhook/add-to-cart`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            sku: btn.dataset.sku,
+            product_name: btn.dataset.name,
+            price: Number(btn.dataset.price),
+            qty: 1,
+            image_url: btn.dataset.image || undefined,
+          }),
+        });
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.classList.remove('added');
+          btn.textContent = 'Add';
+        }, 900);
+      }
     });
 
     document.getElementById('checkout-btn').addEventListener('click', async (e) => {
       if (locked) return;
-      e.target.disabled = true; // prevent double-submit while the request is in flight
+      e.target.disabled = true;
       try {
         await fetch(`${API_BASE}/webhook/checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId })
+          body: JSON.stringify({ session_id: sessionId }),
         });
       } finally {
-        // If it failed and we're not locked, let them try again.
         if (!locked) e.target.disabled = false;
       }
     });
