@@ -12,13 +12,15 @@ const { Pool } = require('pg');
 const pg = new Pool({ connectionString: process.env.DATABASE_URL });
 const BACKEND_URL = process.env.BACKEND_URL; // e.g. https://voice-cobrowse-rgc3.onrender.com
 
-// --- 1. Build the seed product list for this retailer ---
+// --- 1. Build this retailer's initial cart — these get seeded straight
+// into the cart, not shown as a browsable catalog. ---
 async function getRecommendedProducts(retailerId) {
-  // Simplest version: their last order's SKUs. Swap this for whatever
-  // recommendation logic you actually have (frequently-bought, trending
-  // in their category, restock-due items, etc.) — this is just the shape.
+  // Simplest version: reorder their last order's SKUs and quantities.
+  // Swap this for whatever recommendation logic you actually have
+  // (frequently-bought, trending in their category, restock-due items,
+  // etc.) — this is just the shape. `qty` here becomes the cart quantity.
   const { rows } = await pg.query(
-    `select sku, product_name, price, image_url
+    `select sku, product_name, price, image_url, qty
      from order_items oi
      join orders o on o.order_id = oi.order_id
      where o.retailer_id = $1
@@ -27,18 +29,24 @@ async function getRecommendedProducts(retailerId) {
     [retailerId]
   );
 
-  return rows.map((r) => ({ id: r.sku, name: r.product_name, price: r.price, image_url: r.image_url }));
+  return rows.map((r) => ({
+    id: r.sku,
+    name: r.product_name,
+    price: r.price,
+    image_url: r.image_url,
+    qty: r.qty || 1,
+  }));
 }
 
-// --- 2. Create the session on your backend — session_id is generated server-side ---
-async function createSession(retailerId, seedProducts) {
+// --- 2. Create the session on your backend — session_id is generated
+// server-side, and `products` is seeded directly into the cart. ---
+async function createSession(retailerId, products) {
   const res = await fetch(`${BACKEND_URL}/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       retailer_id: retailerId,
-      seed_cart: {},
-      seed_products: seedProducts,
+      products,
     }),
   });
   return res.json(); // { ok: true, session_id, url }
@@ -82,9 +90,9 @@ async function triggerCall(phone, sessionId, retailerId) {
 
 // --- Orchestration ---
 async function startSession(retailerId, phone) {
-  const seedProducts = await getRecommendedProducts(retailerId);
+  const products = await getRecommendedProducts(retailerId);
 
-  const { session_id: sessionId, url } = await createSession(retailerId, seedProducts);
+  const { session_id: sessionId, url } = await createSession(retailerId, products);
 
   await sendLinkOverWhatsApp(phone, url);
   await triggerCall(phone, sessionId, retailerId);

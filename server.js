@@ -97,6 +97,25 @@ function ah(fn) {
   };
 }
 
+// Builds a compact, LLM-friendly snapshot of order state. Every mutating
+// webhook returns this in its response, so the model's own function-call
+// context gets refreshed with ground truth after each action — it should
+// reason from this, not from its own memory of what it called earlier.
+function orderSummary(state) {
+  const items = Object.entries(state.cart).map(([sku, item]) => ({
+    sku,
+    product_name: item.product_name,
+    qty: item.qty,
+    price: item.price,
+    line_total: item.price * item.qty,
+  }));
+  return {
+    cart_items: items,
+    item_count: items.reduce((sum, i) => sum + i.qty, 0),
+    cart_total: items.reduce((sum, i) => sum + i.line_total, 0),
+  };
+}
+
 // Loads state and enforces that the session is still open for new actions:
 // throws 404 if expired/never existed, 409 if already checked out. Used by
 // every webhook that MUTATES state. The plain read endpoint (GET .../state)
@@ -126,6 +145,17 @@ app.get('/session/:id/state', ah(async (req, res) => {
   res.json({ ok: true, ...state });
 }));
 
+// --- Dedicated tool for the voice agent to explicitly re-sync itself —
+// register this as a SimplAI tool too, and have the agent call it whenever
+// it's unsure what's currently in the cart (e.g. before confirming
+// checkout, or if the retailer asks "what do I have so far?"), rather than
+// answering from its own recollection of the conversation. ---
+app.post('/webhook/get-order-summary', ah(async (req, res) => {
+  const { session_id } = req.body;
+  const state = await requireActiveSession(session_id);
+  res.json({ ok: true, ...orderSummary(state) });
+}));
+
 // --- Webhooks SimplAI's function-calling layer hits during the call ---
 
 app.post('/webhook/add-to-cart', ah(async (req, res) => {
@@ -143,7 +173,7 @@ app.post('/webhook/add-to-cart', ah(async (req, res) => {
   persistToPostgres(session_id, state);
 
   io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku });
-  res.json({ ok: true });
+  res.json({ ok: true, ...orderSummary(state) });
 }));
 
 app.post('/webhook/remove-from-cart', ah(async (req, res) => {
@@ -161,7 +191,7 @@ app.post('/webhook/remove-from-cart', ah(async (req, res) => {
   persistToPostgres(session_id, state);
 
   io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku, removed: true });
-  res.json({ ok: true });
+  res.json({ ok: true, ...orderSummary(state) });
 }));
 
 app.post('/webhook/update-quantity', ah(async (req, res) => {
@@ -186,7 +216,7 @@ app.post('/webhook/update-quantity', ah(async (req, res) => {
   persistToPostgres(session_id, state);
 
   io.to(session_id).emit('cart:update', { cart: state.cart, changed_sku: sku });
-  res.json({ ok: true });
+  res.json({ ok: true, ...orderSummary(state) });
 }));
 
 app.post('/webhook/show-products', ah(async (req, res) => {
@@ -203,7 +233,7 @@ app.post('/webhook/show-products', ah(async (req, res) => {
   await setState(session_id, state);
 
   io.to(session_id).emit('products:update', { products: newOnes });
-  res.json({ ok: true });
+  res.json({ ok: true, catalog_size: state.products.length });
 }));
 
 app.post('/webhook/spotlight', ah(async (req, res) => {
@@ -222,12 +252,13 @@ app.post('/webhook/show-offer', ah(async (req, res) => {
   await setState(session_id, state);
 
   io.to(session_id).emit('offer:show', { offer });
-  res.json({ ok: true });
+  res.json({ ok: true, offers_shown_count: state.offersShown.length });
 }));
 
 app.post('/webhook/checkout', ah(async (req, res) => {
   const { session_id } = req.body;
   const state = await requireActiveSession(session_id);
+  const summary = orderSummary(state);
 
   // Replace with your real order-creation call (Flipkart Wholesale order API, etc.)
   const orderId = `ORD-${Date.now()}`;
@@ -247,24 +278,38 @@ app.post('/webhook/checkout', ah(async (req, res) => {
   await setState(session_id, state);
 
   io.to(session_id).emit('checkout:complete', { order_id: orderId });
-  res.json({ ok: true, order_id: orderId });
+  res.json({ ok: true, order_id: orderId, ...summary });
 }));
 
 // --- Session creation, called BEFORE the call is placed / link is sent ---
 // Whatever triggers the call (your dialer, CRM, campaign job) should call
-// this first: build seed_products from that retailer's purchase history or
-// recommendation logic, then pass them here so the page has content the
-// instant it's opened — not just an empty cart waiting for the bot to act.
+// this first: build the retailer's initial products from purchase history
+// or recommendation logic, and pass them as `products` — these are seeded
+// directly into the CART, not into the browsable catalog, since this is
+// what the retailer already has going into the call. The "Available
+// products" list starts empty and is only populated during the call via
+// the show-products webhook, for anything the bot wants to introduce fresh.
 // session_id is generated here, not supplied by the caller. The session is
 // valid for SESSION_TTL_MS from this moment on.
 app.post('/session', ah(async (req, res) => {
-  const { retailer_id, seed_cart, seed_products } = req.body;
+  const { retailer_id, products } = req.body; // products: [{id, name, price, qty, image_url}]
   const session_id = randomUUID();
+
+  const cart = {};
+  for (const p of products || []) {
+    cart[p.id] = {
+      product_name: p.name,
+      price: p.price,
+      qty: p.qty || 1,
+      image_url: p.image_url,
+    };
+  }
+
   const state = {
     retailerId: retailer_id,
-    cart: seed_cart || {},
+    cart,
     offersShown: [],
-    products: seed_products || [], // [{id, name, price, image_url}]
+    products: [], // starts empty — filled live via /webhook/show-products
     status: 'active',
     expiresAt: Date.now() + SESSION_TTL_MS,
   };
