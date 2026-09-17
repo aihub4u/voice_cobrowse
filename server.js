@@ -22,7 +22,11 @@ const io = new Server(server, {
 
 // --- Redis: reuse your existing instance, separate key prefix from BullMQ ---
 const redisUrl = process.env.REDIS_URL;
-const pubClient = new Redis(redisUrl);
+const redisOpts = {
+  retryStrategy: (times) => (times > 10 ? null : Math.min(times * 200, 5000)), // stop after 10 tries
+  maxRetriesPerRequest: 3,
+};
+const pubClient = new Redis(redisUrl, redisOpts);
 const subClient = pubClient.duplicate();
 
 pubClient.on('error', (err) => console.error('redis pubClient error:', err.message));

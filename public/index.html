@@ -2,59 +2,201 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body { font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; }
-  .product { display: flex; justify-content: space-between; padding: 12px; border: 1px solid #ddd;
-             border-radius: 8px; margin-bottom: 8px; transition: background 0.3s, transform 0.3s; }
-  .product.highlight { background: #fff3cd; transform: scale(1.02); }
-  .offer { background: #e8f5e9; border: 1px solid #4caf50; padding: 10px; border-radius: 8px; margin: 10px 0; }
-  #status { font-size: 13px; color: #888; }
-  #checkout-btn { width: 100%; padding: 12px; margin-top: 16px; background: #222; color: #fff;
-                  border: none; border-radius: 8px; font-size: 16px; }
+  :root {
+    --paper: #F3F1EA;
+    --paper-raised: #FBFAF6;
+    --ink: #20242B;
+    --ink-soft: #63605A;
+    --line: #D7D2C4;
+    --primary: #24345C;
+    --primary-ink: #FFFFFF;
+    --amber: #B8791A;
+    --amber-bg: #F7EAD2;
+    --sage: #3F6B4A;
+    --sage-bg: #E4EDE6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 18px 48px; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 14px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .mark {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+  .status .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #B8791A;
+    transition: background 0.3s;
+  }
+  .status.live .dot { background: var(--sage); }
+
+  .total-block { margin-bottom: 28px; }
+  .total-label { font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; }
+  .total-value {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 40px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.25s ease;
+  }
+  .total-value.tally { transform: scale(1.05); color: var(--primary); }
+
+  h2.section {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 15px;
+    margin: 0 0 10px;
+  }
+
+  .ledger { border-top: 1px solid var(--line); margin-bottom: 28px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+    background: transparent;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .row .name { font-size: 14.5px; }
+  .row .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .row .price {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .row.empty { color: var(--ink-soft); font-size: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+
+  .row.pulse { background: var(--sage-bg); }
+  .row.spot { background: var(--amber-bg); border-color: var(--amber); }
+
+  .offer-banner {
+    display: none;
+    background: var(--amber-bg); border: 1px solid var(--amber);
+    border-radius: 4px; padding: 12px 14px; margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .offer-banner .label {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 12.5px;
+    color: var(--amber); margin-bottom: 3px;
+  }
+
+  .cta {
+    width: 100%; padding: 15px; margin-top: 8px;
+    background: var(--primary); color: var(--primary-ink);
+    border: none; border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; font-size: 15px;
+    cursor: pointer;
+  }
+  .cta:active { opacity: 0.9; }
+
+  /* Confirmation screen */
+  .confirm-screen { text-align: center; padding-top: 60px; }
+  .confirm-mark {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--sage-bg); border: 1px solid var(--sage);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px; color: var(--sage); font-size: 24px;
+  }
+  .confirm-screen h1 {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 22px;
+    margin: 0 0 8px;
+  }
+  .confirm-screen .order-id {
+    font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums;
+    color: var(--ink-soft); font-size: 14px;
+  }
 </style>
 </head>
 <body>
-  <h2>Your cart</h2>
-  <div id="status">connecting…</div>
-  <div id="cart"></div>
-  <div id="offers"></div>
-  <button id="checkout-btn">Confirm order</button>
+  <div class="wrap" id="app">
+    <div class="topbar">
+      <span class="mark">Order</span>
+      <span class="status" id="status"><span class="dot"></span><span id="status-text">connecting</span></span>
+    </div>
 
-  <h2>Available products</h2>
-  <div id="products"></div>
+    <div class="total-block">
+      <div class="total-label">Running total</div>
+      <div class="total-value" id="total">₹0</div>
+    </div>
+
+    <div class="offer-banner" id="offer-banner">
+      <div class="label">Offer</div>
+      <div id="offer-text"></div>
+    </div>
+
+    <h2 class="section">Your order</h2>
+    <div class="ledger" id="cart"></div>
+
+    <h2 class="section">Available products</h2>
+    <div class="ledger" id="products"></div>
+
+    <button class="cta" id="checkout-btn">Confirm order</button>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
-    const sessionId = params.get('s'); // e.g. order.karixforge.in/?s=SESSION_ID
-    const API_BASE = ''; // same origin — server.js serves this file directly
+    const sessionId = params.get('s');
+    const API_BASE = '';
 
     const socket = io(API_BASE, { query: { session_id: sessionId } });
     let cart = {};
     let products = [];
 
-    function renderProducts() {
-      const el = document.getElementById('products');
-      el.innerHTML = products.map((p) => `
-        <div class="product" id="prod-${p.id}">
-          <span>${p.name}</span>
-          <span>₹${p.price}</span>
-        </div>
-      `).join('') || '<p>No products loaded yet.</p>';
+    function formatINR(n) {
+      return '₹' + Number(n).toLocaleString('en-IN');
+    }
+
+    function cartTotal() {
+      return Object.values(cart).reduce((sum, item) => sum + item.price * item.qty, 0);
+    }
+
+    function bumpTotal() {
+      const el = document.getElementById('total');
+      el.textContent = formatINR(cartTotal());
+      el.classList.add('tally');
+      setTimeout(() => el.classList.remove('tally'), 250);
     }
 
     function renderCart() {
       const el = document.getElementById('cart');
-      el.innerHTML = Object.entries(cart).map(([sku, item]) => `
-        <div class="product" id="cart-${sku}">
-          <span>${item.product_name} × ${item.qty}</span>
-          <span>₹${item.price * item.qty}</span>
-        </div>
-      `).join('') || '<p>No items yet — the agent will add products as you talk.</p>';
+      const entries = Object.entries(cart);
+      el.innerHTML = entries.length
+        ? entries.map(([sku, item]) => `
+            <div class="row" id="cart-${sku}">
+              <div>
+                <div class="name">${item.product_name}</div>
+                <div class="meta">qty ${item.qty}</div>
+              </div>
+              <div class="price">${formatINR(item.price * item.qty)}</div>
+            </div>
+          `).join('')
+        : '<div class="row empty">Nothing added yet — items appear here as the agent talks you through your order.</div>';
     }
 
-    // Rehydrate on load/reconnect rather than trusting only live events
+    function renderProducts() {
+      const el = document.getElementById('products');
+      el.innerHTML = products.length
+        ? products.map((p) => `
+            <div class="row" id="prod-${p.id}">
+              <div class="name">${p.name}</div>
+              <div class="price">${formatINR(p.price)}</div>
+            </div>
+          `).join('')
+        : '<div class="row empty">No products loaded yet.</div>';
+    }
+
     async function loadState() {
       const res = await fetch(`${API_BASE}/session/${sessionId}/state`);
       const state = await res.json();
@@ -62,21 +204,25 @@
       products = state.products || [];
       renderCart();
       renderProducts();
-      document.getElementById('status').textContent = 'live';
+      bumpTotal();
+      document.getElementById('status').classList.add('live');
+      document.getElementById('status-text').textContent = 'live';
     }
 
     socket.on('connect', loadState);
     socket.on('disconnect', () => {
-      document.getElementById('status').textContent = 'reconnecting…';
+      document.getElementById('status').classList.remove('live');
+      document.getElementById('status-text').textContent = 'reconnecting';
     });
 
     socket.on('cart:update', (data) => {
       cart = data.cart;
       renderCart();
+      bumpTotal();
       const el = document.getElementById(`cart-${data.changed_sku}`);
       if (el) {
-        el.classList.add('highlight');
-        setTimeout(() => el.classList.remove('highlight'), 1200);
+        el.classList.add('pulse');
+        setTimeout(() => el.classList.remove('pulse'), 1200);
       }
     });
 
@@ -89,18 +235,25 @@
       const el = document.getElementById(`prod-${data.product_id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('highlight');
-        setTimeout(() => el.classList.remove('highlight'), 1500);
+        el.classList.add('spot');
+        setTimeout(() => el.classList.remove('spot'), 1600);
       }
     });
 
     socket.on('offer:show', (data) => {
-      const el = document.getElementById('offers');
-      el.innerHTML = `<div class="offer">${data.offer.title} — ${data.offer.discount}</div>` + el.innerHTML;
+      const banner = document.getElementById('offer-banner');
+      document.getElementById('offer-text').textContent = `${data.offer.title} — ${data.offer.discount}`;
+      banner.style.display = 'block';
     });
 
     socket.on('checkout:complete', (data) => {
-      document.body.innerHTML = `<h2>Order confirmed</h2><p>Order ID: ${data.order_id}</p>`;
+      document.getElementById('app').innerHTML = `
+        <div class="confirm-screen">
+          <div class="confirm-mark">&#10003;</div>
+          <h1>Order confirmed</h1>
+          <div class="order-id">${data.order_id}</div>
+        </div>
+      `;
     });
 
     document.getElementById('checkout-btn').addEventListener('click', async () => {
