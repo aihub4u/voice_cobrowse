@@ -35,7 +35,10 @@ subClient.on('error', (err) => console.error('redis subClient error:', err.messa
 io.adapter(createAdapter(pubClient, subClient));
 
 // Postgres: source of truth for cart + order history
-const pg = new Pool({ connectionString: process.env.DATABASE_URL });
+const pg = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 pg.on('error', (err) => console.error('pg pool error:', err.message));
 
 // Session state lives in Redis for fast reads; Postgres write is fire-and-forget
