@@ -8,10 +8,9 @@
 // Usage: node start-session.js <retailer_id> <phone_number>
 
 const { Pool } = require('pg');
-const { randomUUID } = require('crypto');
 
 const pg = new Pool({ connectionString: process.env.DATABASE_URL });
-const BACKEND_URL = process.env.BACKEND_URL; // e.g. https://voice-cobrowse.onrender.com
+const BACKEND_URL = process.env.BACKEND_URL; // e.g. https://voice-cobrowse-rgc3.onrender.com
 
 // --- 1. Build the seed product list for this retailer ---
 async function getRecommendedProducts(retailerId) {
@@ -31,19 +30,18 @@ async function getRecommendedProducts(retailerId) {
   return rows.map((r) => ({ id: r.sku, name: r.product_name, price: r.price }));
 }
 
-// --- 2. Create the session on your backend ---
-async function createSession(retailerId, sessionId, seedProducts) {
+// --- 2. Create the session on your backend — session_id is generated server-side ---
+async function createSession(retailerId, seedProducts) {
   const res = await fetch(`${BACKEND_URL}/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      session_id: sessionId,
       retailer_id: retailerId,
       seed_cart: {},
       seed_products: seedProducts,
     }),
   });
-  return res.json(); // { ok: true, url: "https://order.karixforge.in/s/..." }
+  return res.json(); // { ok: true, session_id, url }
 }
 
 // --- 3. Send the link over WhatsApp (via your existing Karix messaging setup) ---
@@ -84,10 +82,9 @@ async function triggerCall(phone, sessionId, retailerId) {
 
 // --- Orchestration ---
 async function startSession(retailerId, phone) {
-  const sessionId = randomUUID();
   const seedProducts = await getRecommendedProducts(retailerId);
 
-  const { url } = await createSession(retailerId, sessionId, seedProducts);
+  const { session_id: sessionId, url } = await createSession(retailerId, seedProducts);
 
   await sendLinkOverWhatsApp(phone, url);
   await triggerCall(phone, sessionId, retailerId);

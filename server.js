@@ -6,6 +6,7 @@
 
 const express = require('express');
 const http = require('http');
+const { randomUUID } = require('crypto');
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis = require('ioredis');
@@ -158,8 +159,10 @@ app.post('/webhook/checkout', ah(async (req, res) => {
 // this first: build seed_products from that retailer's purchase history or
 // recommendation logic, then pass them here so the page has content the
 // instant it's opened — not just an empty cart waiting for the bot to act.
+// session_id is generated here, not supplied by the caller.
 app.post('/session', ah(async (req, res) => {
-  const { session_id, retailer_id, seed_cart, seed_products } = req.body;
+  const { retailer_id, seed_cart, seed_products } = req.body;
+  const session_id = randomUUID();
   const state = {
     retailerId: retailer_id,
     cart: seed_cart || {},
@@ -167,7 +170,9 @@ app.post('/session', ah(async (req, res) => {
     products: seed_products || [], // [{id, name, price, image_url}]
   };
   await setState(session_id, state);
-  res.json({ ok: true, url: `https://order.karixforge.in/s/${session_id}` });
+
+  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  res.json({ ok: true, session_id, url: `${baseUrl}/?s=${session_id}` });
 }));
 
 server.listen(process.env.PORT || 3000);
