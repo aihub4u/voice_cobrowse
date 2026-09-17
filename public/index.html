@@ -90,15 +90,12 @@
   }
   .cart-summary-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    padding: 10px 12px;
   }
   .cart-summary-head .label { font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13px; }
-  .cart-summary-head .meta { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
-  .cart-summary-head .chev { transition: transform 0.25s ease; font-size: 11px; }
-  .cart-summary.open .chev { transform: rotate(180deg); }
+  .cart-summary-head .meta { font-size: 12.5px; color: var(--ink-soft); }
 
-  .cart-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-  .cart-summary.open .cart-detail { max-height: 240px; overflow-y: auto; }
+  .cart-detail { }
   .cart-row {
     display: flex; align-items: center; gap: 9px;
     padding: 7px 12px; border-top: 1px solid var(--line);
@@ -136,6 +133,7 @@
     font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13px;
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
+  #products-section { display: none; }
 
   /* --- Floating cart summary bar (display-only, glass HUD style) --- */
   .cart-bar {
@@ -185,15 +183,17 @@
       <div class="offer-chip" id="offer-chip"><span>&#127991;</span><span id="offer-text"></span></div>
 
       <div class="cart-summary" id="cart-summary">
-        <div class="cart-summary-head" id="cart-summary-head">
+        <div class="cart-summary-head">
           <span class="label">Your order</span>
-          <span class="meta"><span id="cart-summary-text">No items yet</span><span class="chev">&#9662;</span></span>
+          <span class="meta" id="cart-summary-text">No items yet</span>
         </div>
         <div class="cart-detail" id="cart-detail"></div>
       </div>
 
-      <h2 class="section">Available products</h2>
-      <div class="plist" id="products"></div>
+      <div id="products-section">
+        <h2 class="section">Available products</h2>
+        <div class="plist" id="products"></div>
+      </div>
     </div>
 
     <div class="cart-bar" id="cart-bar">
@@ -257,16 +257,15 @@
     }
 
     function renderProducts() {
+      document.getElementById('products-section').style.display = products.length ? 'block' : 'none';
       const el = document.getElementById('products');
-      el.innerHTML = products.length
-        ? products.map((p) => `
-            <div class="prow" id="prod-${p.id}">
-              ${thumbTag(p.image_url)}
-              <div class="name">${p.name}</div>
-              <div class="price">${formatINR(p.price)}</div>
-            </div>
-          `).join('')
-        : '<div class="empty-note" style="padding:10px 12px">No products loaded yet.</div>';
+      el.innerHTML = products.map((p) => `
+        <div class="prow" id="prod-${p.id}">
+          ${thumbTag(p.image_url)}
+          <div class="name">${p.name}</div>
+          <div class="price">${formatINR(p.price)}</div>
+        </div>
+      `).join('');
     }
 
     function showLockScreen({ kind, message, orderId }) {
@@ -360,10 +359,6 @@
       showLockScreen({ kind: 'completed', message: 'This order has already been placed.', orderId: data.order_id });
     });
 
-    document.getElementById('cart-summary-head').addEventListener('click', () => {
-      if (cartCount() === 0) return;
-      document.getElementById('cart-summary').classList.toggle('open');
-    });
   </script>
 </body>
 </html>
